@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Emergency Room Patient Management System using Priority Queue (Max Heap)">
+  <title>ER Management System - Emergency Room Patient Priority Queue</title>
+  
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Styles and Scripts -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- 1. Header -->
+  <header id="header">
+    <div class="header-content">
+      <div class="logo">
+        <i class="fas fa-hospital"></i> <!-- or fa-plus-square -->
+        <div>
+          <h1>ER Management System</h1>
+          <p class="tagline">Emergency Room Patient Priority Queue</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="emergency-indicator">
+          <span class="pulse-dot"></span>
+          <span>EMERGENCY ACTIVE</span>
+        </div>
+        <div class="header-time" id="header-time"><!-- JS fills --></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- 2. Notification Container -->
+  <div id="notification-container"></div>
+
+  <!-- 3. Dashboard Stats -->
+  <section id="dashboard">
+    <div class="stats-grid">
+      <!-- 4 stat cards -->
+      <div class="stat-card" id="stat-total">
+        <div class="stat-icon"><i class="fas fa-users"></i></div>
+        <div class="stat-info">
+          <span class="stat-number" id="total-patients">0</span>
+          <span class="stat-label">Total Patients</span>
+        </div>
+      </div>
+      <div class="stat-card" id="stat-waiting">
+        <div class="stat-icon"><i class="fas fa-clock"></i></div>
+        <div class="stat-info">
+          <span class="stat-number" id="waiting-patients">0</span>
+          <span class="stat-label">Waiting</span>
+        </div>
+      </div>
+      <div class="stat-card" id="stat-critical">
+        <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
+        <div class="stat-info">
+          <span class="stat-number" id="critical-patients">0</span>
+          <span class="stat-label">Critical</span>
+        </div>
+      </div>
+      <div class="stat-card" id="stat-treated">
+        <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+        <div class="stat-info">
+          <span class="stat-number" id="treated-patients">0</span>
+          <span class="stat-label">Treated</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. Main Content - Two Column -->
+  <section id="main-content">
+    <div class="content-grid">
+      <!-- LEFT: Add Patient Form -->
+      <div class="section-card" id="add-patient-section">
+        <div class="section-header">
+          <i class="fas fa-user-plus"></i>
+          <h2>Register New Patient</h2>
+        </div>
+        <form id="patient-form">
+          <div class="form-group">
+            <label for="patient-name"><i class="fas fa-user"></i> Patient Name</label>
+            <input type="text" id="patient-name" placeholder="Enter patient name" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="patient-age"><i class="fas fa-birthday-cake"></i> Age</label>
+              <input type="number" id="patient-age" placeholder="Age" min="0" max="150" required>
+            </div>
+            <div class="form-group">
+              <label for="patient-gender"><i class="fas fa-venus-mars"></i> Gender</label>
+              <select id="patient-gender" required>
+                <option value="">Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="emergency-type"><i class="fas fa-ambulance"></i> Emergency Type</label>
+            <select id="emergency-type" required>
+              <option value="">Select Emergency Type</option>
+              <option value="Accident">🚗 Accident</option>
+              <option value="Heart Problem">❤️ Heart Problem</option>
+              <option value="Breathing Problem">🫁 Breathing Problem</option>
+              <option value="Fever">🤒 Fever</option>
+              <option value="Injury">🩹 Injury</option>
+              <option value="Other">🏥 Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="severity-level"><i class="fas fa-exclamation-circle"></i> Emergency Severity</label>
+            <select id="severity-level" required>
+              <option value="">Select Severity Level</option>
+              <option value="5">⚠️ 5 - Critical</option>
+              <option value="4">🔴 4 - Very Urgent</option>
+              <option value="3">🟠 3 - Urgent</option>
+              <option value="2">🔵 2 - Moderate</option>
+              <option value="1">🟢 1 - Low Priority</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary" id="add-patient-btn">
+            <i class="fas fa-plus-circle"></i> Add Patient to Emergency Queue
+          </button>
+        </form>
+        <button type="button" class="btn btn-demo" id="demo-btn">
+          <i class="fas fa-magic"></i> Add Demo Patients
+        </button>
+      </div>
+
+      <!-- RIGHT: Next Patient -->
+      <div class="section-card" id="next-patient-section">
+        <div class="section-header">
+          <i class="fas fa-star-of-life"></i>
+          <h2>Next Patient to Treat</h2>
+        </div>
+        <div id="next-patient-content">
+          <div class="empty-state">
+            <i class="fas fa-inbox"></i>
+            <p>No patients in queue</p>
+          </div>
+        </div>
+        <button type="button" class="btn btn-treat" id="treat-btn" disabled>
+          <i class="fas fa-procedures"></i> Treat Next Patient
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. Workflow Diagram -->
+  <section id="workflow-section" class="section-card">
+    <div class="section-header">
+      <i class="fas fa-project-diagram"></i>
+      <h2>Emergency Treatment Workflow</h2>
+    </div>
+    <div class="workflow-container">
+      <div class="workflow-step" id="step-add">
+        <div class="step-icon"><i class="fas fa-user-plus"></i></div>
+        <div class="step-label">Patient Added</div>
+      </div>
+      <div class="workflow-arrow"><i class="fas fa-arrow-right"></i></div>
+      <div class="workflow-step" id="step-queue">
+        <div class="step-icon"><i class="fas fa-sort-amount-down"></i></div>
+        <div class="step-label">Priority Queue</div>
+      </div>
+      <div class="workflow-arrow"><i class="fas fa-arrow-right"></i></div>
+      <div class="workflow-step" id="step-select">
+        <div class="step-icon"><i class="fas fa-hand-pointer"></i></div>
+        <div class="step-label">Highest Priority</div>
+      </div>
+      <div class="workflow-arrow"><i class="fas fa-arrow-right"></i></div>
+      <div class="workflow-step" id="step-treat">
+        <div class="step-icon"><i class="fas fa-stethoscope"></i></div>
+        <div class="step-label">Treatment</div>
+      </div>
+      <div class="workflow-arrow"><i class="fas fa-arrow-right"></i></div>
+      <div class="workflow-step" id="step-history">
+        <div class="step-icon"><i class="fas fa-history"></i></div>
+        <div class="step-label">History</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. Emergency Queue -->
+  <section id="queue-section" class="section-card">
+    <div class="section-header">
+      <i class="fas fa-list-ol"></i>
+      <h2>Emergency Waiting Queue</h2>
+      <span class="queue-count" id="queue-count">0 patients</span>
+    </div>
+    <div id="queue-container" class="queue-grid">
+      <div class="empty-state">
+        <i class="fas fa-inbox"></i>
+        <p>No patients in the emergency queue</p>
+        <p class="empty-subtitle">Add a patient or click 'Add Demo Patients' to get started</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. Heap Visualizer -->
+  <section id="heap-section" class="section-card">
+    <div class="section-header">
+      <i class="fas fa-sitemap"></i>
+      <h2>Priority Queue - Heap Visualization</h2>
+    </div>
+    <div id="heap-container" class="heap-tree">
+      <div class="empty-state">
+        <i class="fas fa-sitemap"></i>
+        <p>Heap visualization will appear here</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. Treatment History -->
+  <section id="history-section" class="section-card">
+    <div class="section-header">
+      <i class="fas fa-clipboard-list"></i>
+      <h2>Treatment History</h2>
+    </div>
+    <div class="table-container">
+      <table id="history-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Patient Name</th>
+            <th>Emergency Type</th>
+            <th>Severity</th>
+            <th>Arrival Time</th>
+            <th>Treated Time</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="history-body">
+          <!-- JS fills -->
+        </tbody>
+      </table>
+      <div class="empty-state" id="history-empty">
+        <i class="fas fa-clipboard"></i>
+        <p>No patients have been treated yet</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. DSA Explanation -->
+  <section id="dsa-section" class="section-card">
+    <div class="section-header">
+      <i class="fas fa-graduation-cap"></i>
+      <h2>How Priority Queue Works</h2>
+    </div>
+    <div class="dsa-content">
+      <p class="dsa-description">
+        A <strong>Priority Queue</strong> stores patients according to emergency severity 
+        instead of simple arrival order. Patients with critical conditions are treated first. 
+        It is implemented using a <strong>Max Heap</strong> data structure.
+      </p>
+      <div class="complexity-cards">
+        <div class="complexity-card">
+          <div class="complexity-icon"><i class="fas fa-plus-circle"></i></div>
+          <div class="complexity-info">
+            <h3>Insert Patient</h3>
+            <code>O(log n)</code>
+            <p>New patient is added and bubbles up to correct position</p>
+          </div>
+        </div>
+        <div class="complexity-card">
+          <div class="complexity-icon"><i class="fas fa-arrow-up"></i></div>
+          <div class="complexity-info">
+            <h3>Treat Highest Priority</h3>
+            <code>O(log n)</code>
+            <p>Root is removed and heap is reorganized</p>
+          </div>
+        </div>
+        <div class="complexity-card">
+          <div class="complexity-icon"><i class="fas fa-eye"></i></div>
+          <div class="complexity-info">
+            <h3>View Next Patient</h3>
+            <code>O(1)</code>
+            <p>Highest priority patient is always at the root</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10. Footer -->
+  <footer id="footer">
+    <p>🏥 Emergency Room Patient Management System | Built with Priority Queue (Max Heap) | DSA Project</p>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="script.js"></script>
+</body>
+</html>
