@@ -485,17 +485,30 @@ function renderHeapVisualizer() {
             <div class="empty-state">
                 <i class="fas fa-sitemap"></i>
                 <p>Heap visualization will appear here</p>
+                <p class="empty-subtitle">Add patients to see the Max Heap tree structure dynamically build</p>
             </div>`;
         return;
     }
-    
+
+    // Legend Header
+    const legend = document.createElement('div');
+    legend.className = 'heap-legend';
+    legend.innerHTML = `
+        <span class="legend-item"><span class="legend-dot" style="background: var(--severity-5);"></span> S5: Critical</span>
+        <span class="legend-item"><span class="legend-dot" style="background: var(--severity-4);"></span> S4: Very Urgent</span>
+        <span class="legend-item"><span class="legend-dot" style="background: var(--severity-3);"></span> S3: Urgent</span>
+        <span class="legend-item"><span class="legend-dot" style="background: var(--severity-2);"></span> S2: Moderate</span>
+        <span class="legend-item"><span class="legend-dot" style="background: var(--severity-1);"></span> S1: Low</span>
+    `;
+    dom.heapVisualizer.appendChild(legend);
+
     // Build SVG-based tree visualization
     const svgNS = "http://www.w3.org/2000/svg";
-    const nodeRadius = 32;
-    const levelHeight = 80;
+    const nodeRadius = 34;
+    const levelHeight = 85;
     const totalLevels = Math.floor(Math.log2(heap.length)) + 1;
-    const svgWidth = Math.max(600, Math.pow(2, totalLevels - 1) * (nodeRadius * 2 + 20));
-    const svgHeight = totalLevels * levelHeight + 60;
+    const svgWidth = Math.max(650, Math.pow(2, totalLevels - 1) * (nodeRadius * 2 + 28));
+    const svgHeight = totalLevels * levelHeight + 70;
     
     const svg = document.createElementNS(svgNS, "svg");
     svg.setAttribute("width", "100%");
@@ -512,7 +525,7 @@ function renderHeapVisualizer() {
         const nodesInLevel = Math.pow(2, level);
         const spacing = svgWidth / (nodesInLevel + 1);
         const x = spacing * (posInLevel + 1);
-        const y = level * levelHeight + 50;
+        const y = level * levelHeight + 55;
         positions.push({ x, y });
     }
     
@@ -528,7 +541,8 @@ function renderHeapVisualizer() {
             line.setAttribute("x2", positions[left].x);
             line.setAttribute("y2", positions[left].y);
             line.setAttribute("stroke", "#cbd5e1");
-            line.setAttribute("stroke-width", "2");
+            line.setAttribute("stroke-width", "3");
+            line.setAttribute("stroke-linecap", "round");
             svg.appendChild(line);
         }
         if (right < heap.length) {
@@ -538,7 +552,8 @@ function renderHeapVisualizer() {
             line.setAttribute("x2", positions[right].x);
             line.setAttribute("y2", positions[right].y);
             line.setAttribute("stroke", "#cbd5e1");
-            line.setAttribute("stroke-width", "2");
+            line.setAttribute("stroke-width", "3");
+            line.setAttribute("stroke-linecap", "round");
             svg.appendChild(line);
         }
     }
@@ -548,40 +563,88 @@ function renderHeapVisualizer() {
         const patient = heap[i];
         const color = getSeverityColor(patient.severity);
         const { x, y } = positions[i];
+        const isRoot = (i === 0);
         
-        // Circle
+        // Group for interactive node
+        const g = document.createElementNS(svgNS, "g");
+        g.style.cursor = "pointer";
+        g.style.transition = "transform 0.2s ease";
+        
+        // Tooltip
+        const title = document.createElementNS(svgNS, "title");
+        title.textContent = `${isRoot ? 'ROOT (Max Priority)\n' : ''}${patient.name} (${patient.age}y, ${patient.gender})\nEmergency: ${patient.emergencyType}\nSeverity: ${patient.severity} - ${getSeverityLabel(patient.severity)}\nArrived: ${patient.arrivalTimeFormatted}`;
+        g.appendChild(title);
+
+        // Root Node Pulse Outer Ring
+        if (isRoot) {
+            const rootRing = document.createElementNS(svgNS, "circle");
+            rootRing.setAttribute("cx", x);
+            rootRing.setAttribute("cy", y);
+            rootRing.setAttribute("r", nodeRadius + 6);
+            rootRing.setAttribute("fill", "none");
+            rootRing.setAttribute("stroke", "#f59e0b");
+            rootRing.setAttribute("stroke-width", "3");
+            rootRing.setAttribute("stroke-dasharray", "4 2");
+            svg.appendChild(rootRing);
+        }
+        
+        // Node Circle
         const circle = document.createElementNS(svgNS, "circle");
         circle.setAttribute("cx", x);
         circle.setAttribute("cy", y);
         circle.setAttribute("r", nodeRadius);
         circle.setAttribute("fill", color);
-        circle.setAttribute("stroke", "white");
-        circle.setAttribute("stroke-width", "3");
-        circle.style.filter = "drop-shadow(0 2px 4px rgba(0,0,0,0.2))";
-        svg.appendChild(circle);
+        circle.setAttribute("stroke", isRoot ? "#f59e0b" : "white");
+        circle.setAttribute("stroke-width", isRoot ? "4" : "3");
+        circle.style.filter = isRoot ? "drop-shadow(0 0 10px rgba(245, 158, 11, 0.5))" : "drop-shadow(0 4px 6px rgba(0,0,0,0.15))";
+        g.appendChild(circle);
+
+        // Index Badge (Heap Index)
+        const idxCircle = document.createElementNS(svgNS, "circle");
+        idxCircle.setAttribute("cx", x + nodeRadius - 8);
+        idxCircle.setAttribute("cy", y - nodeRadius + 8);
+        idxCircle.setAttribute("r", "9");
+        idxCircle.setAttribute("fill", "#0f4c75");
+        idxCircle.setAttribute("stroke", "white");
+        idxCircle.setAttribute("stroke-width", "1.5");
+        g.appendChild(idxCircle);
+
+        const idxText = document.createElementNS(svgNS, "text");
+        idxText.setAttribute("x", x + nodeRadius - 8);
+        idxText.setAttribute("y", y - nodeRadius + 11);
+        idxText.setAttribute("text-anchor", "middle");
+        idxText.setAttribute("fill", "white");
+        idxText.setAttribute("font-size", "9");
+        idxText.setAttribute("font-weight", "700");
+        idxText.setAttribute("font-family", "Inter, sans-serif");
+        idxText.textContent = i;
+        g.appendChild(idxText);
         
         // Name text
         const nameText = document.createElementNS(svgNS, "text");
         nameText.setAttribute("x", x);
-        nameText.setAttribute("y", y - 5);
+        nameText.setAttribute("y", y - 4);
         nameText.setAttribute("text-anchor", "middle");
         nameText.setAttribute("fill", "white");
         nameText.setAttribute("font-size", "11");
-        nameText.setAttribute("font-weight", "600");
+        nameText.setAttribute("font-weight", "700");
         nameText.setAttribute("font-family", "Inter, sans-serif");
-        nameText.textContent = patient.name.split(' ')[0].substring(0, 6);
-        svg.appendChild(nameText);
+        nameText.textContent = patient.name.split(' ')[0].substring(0, 7);
+        g.appendChild(nameText);
         
         // Severity text
         const sevText = document.createElementNS(svgNS, "text");
         sevText.setAttribute("x", x);
-        sevText.setAttribute("y", y + 12);
+        sevText.setAttribute("y", y + 13);
         sevText.setAttribute("text-anchor", "middle");
         sevText.setAttribute("fill", "white");
         sevText.setAttribute("font-size", "10");
+        sevText.setAttribute("font-weight", "600");
         sevText.setAttribute("font-family", "Inter, sans-serif");
-        sevText.textContent = `S: ${patient.severity}`;
-        svg.appendChild(sevText);
+        sevText.textContent = `P:${patient.severity}`;
+        g.appendChild(sevText);
+
+        svg.appendChild(g);
     }
     
     dom.heapVisualizer.appendChild(svg);
