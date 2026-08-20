@@ -17,7 +17,12 @@ class MaxHeap {
             return b.severity - a.severity; // Higher severity comes first
         }
         // If severity is the same, compare arrival time (earlier is better)
-        return a.arrivalTime.getTime() - b.arrivalTime.getTime();
+        const timeDiff = a.arrivalTime.getTime() - b.arrivalTime.getTime();
+        if (timeDiff !== 0) {
+            return timeDiff;
+        }
+        // Absolute tie-breaker for identical millisecond timestamp: lower sequence counter ID arrived first
+        return (a.numericId || 0) - (b.numericId || 0);
     }
 
     parent(i) { return Math.floor((i - 1) / 2); }
@@ -272,14 +277,32 @@ function handleAddPatient(e) {
     if (e) e.preventDefault();
     
     // Read form values
-    const name = dom.nameInput ? dom.nameInput.value.trim() : 'Unknown';
-    const age = dom.ageInput ? parseInt(dom.ageInput.value, 10) : 0;
-    const gender = dom.genderInput ? dom.genderInput.value : 'Unknown';
-    const severity = dom.severityInput ? parseInt(dom.severityInput.value, 10) : 1;
-    const emergencyType = dom.typeInput ? dom.typeInput.value : 'Other';
+    const name = dom.nameInput ? dom.nameInput.value.trim() : '';
+    const ageVal = dom.ageInput ? dom.ageInput.value : '';
+    const age = parseInt(ageVal, 10);
+    const gender = dom.genderInput ? dom.genderInput.value : '';
+    const severityVal = dom.severityInput ? dom.severityInput.value : '';
+    const severity = parseInt(severityVal, 10);
+    const emergencyType = dom.typeInput ? dom.typeInput.value : '';
     
-    if (!name || isNaN(age)) {
-        showNotification('Please fill in all required fields.', 'warning');
+    if (!name) {
+        showNotification('Please enter the patient name.', 'warning');
+        return;
+    }
+    if (isNaN(age) || age < 0 || age > 150) {
+        showNotification('Please enter a valid age (0 - 150).', 'warning');
+        return;
+    }
+    if (!gender) {
+        showNotification('Please select patient gender.', 'warning');
+        return;
+    }
+    if (!emergencyType) {
+        showNotification('Please select emergency type.', 'warning');
+        return;
+    }
+    if (isNaN(severity) || severity < 1 || severity > 5) {
+        showNotification('Please select emergency severity level (1 - 5).', 'warning');
         return;
     }
     
@@ -290,9 +313,11 @@ function handleAddPatient(e) {
 
 function addPatient(name, age, gender, severity, emergencyType) {
     const arrivalTime = new Date();
+    const currentIdNum = state.patientIdCounter++;
     
     const patient = {
-        id: `PT-${state.patientIdCounter++}`,
+        id: `PT-${currentIdNum}`,
+        numericId: currentIdNum,
         name,
         age,
         gender,
@@ -306,7 +331,7 @@ function addPatient(name, age, gender, severity, emergencyType) {
     state.totalAdded++;
     
     updateUI();
-    showNotification(`${name} added to the priority queue.`, 'success');
+    showNotification(`${name} (Severity ${severity}) added to queue.`, 'success');
     animateWorkflow('add'); // Step 1: Patient Added
     
     setTimeout(() => animateWorkflow('queue'), 800); // Step 2: Priority Queue
